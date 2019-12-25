@@ -1,5 +1,5 @@
 
-getGENCODEAnnotation <- function(species='human', release='31', type='gene') {
+getGENCODEAnnotation <- function(species='human', release='32', type='gene') {
   
   # species: human, mouse
   # release: human 31, mouse M20
