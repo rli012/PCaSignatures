@@ -1,13 +1,16 @@
 
-getGENCODEAnnotation <- function(species='human', release='32', type='gene') {
+getGENCODEAnnotation <- function(species='human', release='32', type='gene', gtf.file=NULL) {
   
   # species: human, mouse
   # release: human 31, mouse M20
   # type: gene, transcript
   
-  baseurl <- 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/'
+  if (is.null(gtf.file)) {
+    baseurl <- 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/'
+    
+    gtf.file <- paste0(baseurl, 'Gencode_', species, '/release_', release, '/gencode.v', release, '.annotation.gtf.gz')
+  }
   
-  gtf.file <- paste0(baseurl, 'Gencode_', species, '/release_', release, '/gencode.v', release, '.annotation.gtf.gz')
   gtf <- readGFF(gtf.file, version=2L)
   
   if (type!='all') {
