@@ -27,6 +27,43 @@ getGENCODEAnnotation <- function(species='human', release='32', type='gene', gtf
 #gtf <- add_column(.data = gtf, .after = 'end', length=gtf$end-gtf$start+1)
 #saveRDS(gtf, file='data/GENCODE_Annotation_Human_V32.RDS')
 
+                      
+getENSEMBLAnnotation <- function(attributes=NULL) {
+  
+  if (is.null(attributes)) {
+    attributes <- c('ensembl_gene_id', 'entrezgene_id', 'hgnc_symbol', 
+      'external_gene_name', 'description', 'gene_biotype')
+  }
+  
+  #listMarts()
+  
+  ensembl=useMart("ensembl")
+  #ensembl
+  datasets <- listDatasets(ensembl)
+  #head(datasets)
+  
+  ensembl = useDataset("hsapiens_gene_ensembl",mart=ensembl)
+  #attributes <- ensembl@attributes
+  #View(attributes)
+  
+  #affyids=c("202763_at","209310_s_at","207500_at")
+  annotation <- getBM(attributes=attributes,
+                      #filters = 'affy_hg_u133_plus_2', 
+                      #values = affyids, 
+                      mart = ensembl)
+  
+  return(annotation)
+}
+
+#ensembl <- getENSEMBLAnnotation()
+#gtf <- readRDS(file='data/GENCODE_Annotation_Human_V32.RDS')
+#sum(gtf$ensembl %in% ensembl$ensembl_gene_id)
+#length(gtf$ensembl)
+#saveRDS(ensembl, file='data/ENSEMBL_Annotation_Human_V98.RDS')
+
+#attributes <- c('ensembl_gene_id', 'entrezgene_id', 'external_gene_name', 'illumina_humanht_12_v4')
+#ILLUMINA.HumanHT.12.V4 <- getENSEMBLAnnotation(attributes = attributes)
+
 
 getSurvivalFun <- function(n=3, days.survival, days.followup) {
   
