@@ -3,7 +3,7 @@
 #SBATCH --ntasks=16
 #SBATCH --mem=64G
 #SBATCH --time=20:00:00
-#SBATCH --output=featureCounts.Gencode.log
+#SBATCH --output=featureCounts.gencode.log
 #SBATCH -p intel
 #SBATCH --chdir=/bigdata/jialab/rli012/PCa/data/fromSRA/GSE54460/
 
