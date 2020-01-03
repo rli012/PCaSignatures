@@ -65,22 +65,20 @@ getENSEMBLAnnotation <- function(attributes=NULL) {
 #ILLUMINA.HumanHT.12.V4 <- getENSEMBLAnnotation(attributes = attributes)
 
 
-getSurvivalFun <- function(n=3, days.survival, days.followup) {
-  
-  idx <- which(days.followup > n*365)
+getEventFun <- function(n=3, time.to.event, status) {
+
+  idx <- which(time.to.event < n*12 & status != 1)
   
   if (length(idx) > 0) {
-    days.survival[idx] <- days.followup[idx]
+    time.to.event[idx] <- NA
   } 
   
-  days.survival <- ifelse(days.survival > n*365, 'E0', 'E1')
+  group <- ifelse(time.to.event > n*12, 'E0', 'E1')
   
-  return(days.survival)
+  return(group)
 }
 
-#clinicalDa$BCR_Status_5YR <- getSurvivalFun(n=5, 
-#                                            days.survival = clinicalDa$days_to_first_biochemical_recurrence, 
-#                                            days.followup = clinicalDa$days_to_last_followup)
+#clinicalDa$BCR_Status_5YR <- getEventFun(n=3, time.to.event=phenoData$time_to_bcr, status=phenoData$bcr_status)
 
 
 generateCVFold <- function(nsam, nfold=10) {
