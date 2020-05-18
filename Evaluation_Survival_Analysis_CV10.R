@@ -12,6 +12,7 @@ source('~/bigdata/LABDATA/BLUPHAT/script/Helper_Functions.R')
 # randomForestSRC: https://kogalur.github.io/randomForestSRC/theory.html
 # superpc: http://statweb.stanford.edu/~tibs/superpc/tutorial.html
 # plsRcox: https://fbertran.github.io/plsRcox/
+# BhGLM: https://github.com/nyiuab/BhGLM
 
 #library(remotes)
 #install_github("nyiuab/BhGLM", force=T, build_vignettes=T)
@@ -55,16 +56,15 @@ library(superpc) # pca
 
 
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
-              'GSE94767','E_MTAB_6128','GSE116918_BCR', 'GSE116918_Metastasis')
+              'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
 
-dataset <- datasets[11]  #####
+dataset <- datasets[10]  #####
 
 eSet <- readRDS(paste0('data/Database/Primary/', dataset, '_eSet.RDS'))
 exprData <- exprs(eSet)
 phenoData <- pData(eSet)
 #View(phenoData)
 table(phenoData$sample_type)
-View(phenoData)
 
 keep <- which(phenoData$sample_type=='Primary' | phenoData$sample_type=='Tumor' | phenoData$sample_type=='Tumour' )
 exprData <- exprData[,keep]
@@ -121,9 +121,9 @@ for (signature.name in signatures) {
   message(signature.name)
   
   signature <- read_xlsx(path = 'data/Classifiers.xlsx', sheet=signature.name)
-  signature <- signature$Ensembl
+  signature.genes <- signature$Ensembl
 
-  genes <- intersect(signature, colnames(geno))
+  genes <- intersect(signature.genes, colnames(geno))
 
   ################################ CoxPH
   
@@ -273,8 +273,7 @@ for (signature.name in signatures) {
     
     test.risk.threshold <- median(test.risk.score, na.rm = T)
     test.risk.threshold
-    
-    
+
     training.risk.group <- test.risk.score > training.risk.threshold
     training.risk.group
     
@@ -350,6 +349,8 @@ for (signature.name in signatures) {
     training.risk.score <- training.risk.score$v.pred[,1]
     names(training.risk.score) <- rownames(training.geno)
     
+    training.risk.threshold <- median(training.risk.score, na.rm = T)
+    
     test.risk.score <- superpc.predict(pca.fit, training.data.pca, test.data.pca, 
                                        threshold=0.3, n.components=1, prediction.type="continuous")
     
@@ -360,8 +361,7 @@ for (signature.name in signatures) {
     
     test.risk.threshold <- median(test.risk.score, na.rm = T)
     test.risk.threshold
-    
-    
+
     training.risk.group <- test.risk.score > training.risk.threshold
     training.risk.group
     
