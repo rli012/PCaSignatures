@@ -58,7 +58,7 @@ library(superpc) # pca
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
               'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
 
-dataset <- datasets[10]  #####
+dataset <- datasets[1]  #####
 
 eSet <- readRDS(paste0('data/Database/Primary/', dataset, '_eSet.RDS'))
 exprData <- exprs(eSet)
@@ -89,6 +89,16 @@ if (length(filter)>0) {
   phenoData <- phenoData[-filter,]
 }
 
+# ###### Smples used for classification #####
+# ### ========================================= ###
+# phenoData$bcr_status_5yr <- getEventFun(n=5, time.to.event=phenoData$time_to_bcr, status=phenoData$bcr_status)
+# 
+# table(phenoData$bcr_status_5yr)
+# 
+# filter <- which(is.na(phenoData$bcr_status_5yr))
+# phenoData <- phenoData[-filter,]
+# exprData <- exprData[,-filter]
+# ### ========================================= ###
 
 pheno <- phenoData
 dim(pheno)
@@ -116,7 +126,6 @@ signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad'
 
 # signatures <- c('Penney', 'Irshad', 'Ramos_Montoya','Ross_Adams','Sharma', 'Yang')  # n > p in most of the datasets
 
-genes
 for (signature.name in signatures) {
   message(signature.name)
   
@@ -126,7 +135,7 @@ for (signature.name in signatures) {
   genes <- intersect(signature.genes, colnames(geno))
 
   ################################ CoxPH
-  
+
   model <- 'CoxPH'
   print (model)
 
@@ -225,12 +234,18 @@ for (signature.name in signatures) {
 
   write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
             quote = F)
-
+  # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+  #           quote = F)
   
   ############################## Elastic Net (CoxNet)
   
-  model <- 'CoxNet'
-  print (model)
+  ### LASSO by default, alpha = 1
+  
+  # alpha <- 1
+  # model <- 'CoxNet'
+  
+  alpha <- 0
+  model <- paste0('CoxNetAlpha',alpha)
   
   riskScore <- c()
   trainingRiskGroup <- c()
@@ -255,7 +270,8 @@ for (signature.name in signatures) {
     training.surv.data <- data.frame(training.geno, bcr.time=training.bcr.time, bcr.status=training.bcr.status)
     
     set.seed(777)
-    cv.fit <- cv.glmnet(training.geno, Surv(training.bcr.time, training.bcr.status), family="cox", maxit = 1000)
+    cv.fit <- cv.glmnet(training.geno, Surv(training.bcr.time, training.bcr.status), 
+                        alpha = alpha, family="cox", maxit = 1000)
     
     coeffs <- coef(cv.fit, s = cv.fit$lambda.min)
     coeffs <- as.numeric(coeffs)
@@ -312,10 +328,18 @@ for (signature.name in signatures) {
   write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
             quote = F)
   
+  # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+  #           quote = F)
+  
+  
   ##################################### superpc
   
-  model <- 'SuperPC'
-  print (model)
+  # threshold <- 0.3
+  # model <- 'SuperPC'
+  # print (model)
+  
+  threshold <- 0 # 0.1
+  model <- paste0('SuperPC',threshold)
   
   riskScore <- c()
   trainingRiskGroup <- c()
@@ -344,7 +368,7 @@ for (signature.name in signatures) {
     pca.fit <- superpc.train(training.data.pca, type="survival")
     
     training.risk.score <- superpc.predict(pca.fit, training.data.pca, training.data.pca, 
-                                           threshold=0.3, n.components=1, prediction.type="continuous")
+                                           threshold=threshold, n.components=1, prediction.type="continuous")
     
     training.risk.score <- training.risk.score$v.pred[,1]
     names(training.risk.score) <- rownames(training.geno)
@@ -352,7 +376,7 @@ for (signature.name in signatures) {
     training.risk.threshold <- median(training.risk.score, na.rm = T)
     
     test.risk.score <- superpc.predict(pca.fit, training.data.pca, test.data.pca, 
-                                       threshold=0.3, n.components=1, prediction.type="continuous")
+                                       threshold=threshold, n.components=1, prediction.type="continuous")
     
     test.risk.score <- test.risk.score$v.pred[,1]
     names(test.risk.score) <- rownames(test.geno)
@@ -400,6 +424,10 @@ for (signature.name in signatures) {
   write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
             quote = F)
   
+  # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+  #           quote = F)
+  
+
   ##################################### survivalsvm
   
   # Ctrl + Shift + C, comment out a block of code
@@ -488,3 +516,4 @@ for (signature.name in signatures) {
   
   
 }
+
