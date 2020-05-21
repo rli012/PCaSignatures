@@ -1,6 +1,6 @@
 
 ####################################################################
-###        Summary of Survial Analysis Models (10-fold CV)       ###
+###              Summary of Survial Analysis Models              ###
 ####################################################################
 
 library(survivalROC)
