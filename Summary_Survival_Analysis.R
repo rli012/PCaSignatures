@@ -61,11 +61,11 @@ for (dataset in datasets) {
       i <- i + 1
       stats <- c()
       
-      # fl.name <- paste0('report/Survival/CV10Scale/Signature/Survival_',
-      #                   model, '_', signature.name, '_', dataset, '.csv')
+      fl.name <- paste0('report/Survival/CV10Scale/Signature/Survival_',
+                        model, '_', signature.name, '_', dataset, '.csv')
       
-      fl.name <- paste0('report/SurvivalC/CV10Scale/Signature/Survival_',
-                       model, '_', signature.name, '_', dataset, '.csv')
+      # fl.name <- paste0('report/SurvivalC/CV10Scale/Signature/Survival_',
+      #                  model, '_', signature.name, '_', dataset, '.csv')
       
       if (! file.exists(fl.name)) {
         print (paste('NA:', fl.name))
@@ -156,7 +156,7 @@ statsDF <- data.frame(statsDF, stringsAsFactors = F)
 statsDF
 
 colnames(statsDF) <- c('Dataset', 'Model', 'Signature', 'C', 'TD.AUC', 'Cox.HR', 'Cox.Lower95',
-                       'Cox.Upper96', 'Cox.P', 'KM.HR', 'KM.Lower95', 'KM.Upper95', 'KM.P')
+                       'Cox.Upper95', 'Cox.P', 'KM.HR', 'KM.Lower95', 'KM.Upper95', 'KM.P')
 
 statsDF[,4:13] <- apply(statsDF[,4:13], 2, as.numeric)
 
@@ -189,11 +189,10 @@ ggplot(data=dataForBoxPlot, aes(x=Model, y=C)) +
                outlier.shape = NA, outlier.size = NA, #outlier.colour = 'black',
                outlier.fill = NA) +
   facet_wrap(~Dataset, nrow=2) +
-  ylim(0,5) +
+  #ylim(0,5) +
   geom_jitter(size=2, width=0.05, color='black') + #darkblue
-  #ylim(0,6) +
   #scale_fill_manual(values=c("#56B4E9", "#E69F00")) +
-  labs(x='', y=expression('Expression Level (Log'[2]*'CPM)')) +
+  labs(x='', y=expression('C Index')) +
   #geom_segment(data=df,aes(x = x1, y = y1, xend = x2, yend = y2)) +
   #geom_text(data =anno, aes(x, y, label=label, group=NULL),
   #          size=4) +
@@ -220,7 +219,7 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
   #facet_wrap(~Dataset, nrow=1) +
   geom_jitter(size=2, width=0.05, color='black') + #darkblue
   #scale_fill_manual(values=c("#56B4E9", "#E69F00")) +
-  labs(x='', y=expression('Expression Level (Log'[2]*'CPM)')) +
+  labs(x='', y=expression('C Index')) +
   #geom_segment(data=df,aes(x = x1, y = y1, xend = x2, yend = y2)) +
   #geom_text(data =anno, aes(x, y, label=label, group=NULL),
   #          size=4) +
@@ -368,7 +367,7 @@ statsDF <- data.frame(statsDF, stringsAsFactors = F)
 statsDF
 
 colnames(statsDF) <- c('Training', 'Test', 'Model', 'Signature', 'C', 'TD.AUC', 'Cox.HR', 'Cox.Lower95',
-                       'Cox.Upper96', 'Cox.P', 'KM.HR', 'KM.Lower95', 'KM.Upper95', 'KM.P')
+                       'Cox.Upper95', 'Cox.P', 'KM.HR', 'KM.Lower95', 'KM.Upper95', 'KM.P')
 
 statsDF[,5:14] <- apply(statsDF[,5:14], 2, as.numeric)
 
@@ -407,7 +406,7 @@ ggplot(data=dataForBoxPlot, aes(x=Model, y=C)) +
   #ylim(0,10)+
   geom_jitter(size=2, width=0.05, color='black') + #darkblue
   #scale_fill_manual(values=c("#56B4E9", "#E69F00")) +
-  labs(x='', y=expression('Expression Level (Log'[2]*'CPM)')) +
+  labs(x='', y=expression('C Index')) +
   #geom_segment(data=df,aes(x = x1, y = y1, xend = x2, yend = y2)) +
   #geom_text(data =anno, aes(x, y, label=label, group=NULL),
   #          size=4) +
@@ -431,10 +430,10 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
   geom_boxplot(aes(fill=Signature),
                outlier.shape = NA, outlier.size = NA, #outlier.colour = 'black',
                outlier.fill = NA) +
-  facet_wrap(~Training, nrow=1) +
+  #facet_wrap(~Training, nrow=1) +
   geom_jitter(size=2, width=0.05, color='black') + #darkblue
   #scale_fill_manual(values=c("#56B4E9", "#E69F00")) +
-  labs(x='', y=expression('Expression Level (Log'[2]*'CPM)')) +
+  labs(x='', y=expression('C Index')) +
   #geom_segment(data=df,aes(x = x1, y = y1, xend = x2, yend = y2)) +
   #geom_text(data =anno, aes(x, y, label=label, group=NULL),
   #          size=4) +
@@ -442,8 +441,9 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
   theme(axis.text = element_text(size=14,color='black'),
         axis.text.x = element_text(angle = 45, hjust = 1),
         axis.title = element_text(size=16)) +
-  theme(strip.text = element_text(size=14, face='bold')) +
-  theme(plot.margin =  margin(t = 0.25, r = 0.25, b = 0.25, l = 0.25, unit = "cm"))
+  theme(strip.text = element_text(size=14, face='bold')) #+
+  #theme(plot.margin =  margin(t = 0.25, r = 0.25, b = 0.25, l = 0.25, unit = "cm"))
+
 
 
 
@@ -663,4 +663,3 @@ for (training.set in datasets) {
     }
   }
 }
-
