@@ -5,12 +5,6 @@
 
 library(survivalROC)
 
-
-
-
-
-
-
 # TCGA-PRAD     == Cell 2015                == GDC         == RNAseq: CPM              == Time to BCR
 # CPC-GENE      == Nature_2017              == GSE107299   == HuGene 2.0 ST & HTA 2.0  == Time to BCR
 # MSKCC         ==_Cancer_Cell_2010         == GSE21034    == HuEx 1.0 ST              == Time to BCR
@@ -21,8 +15,6 @@ library(survivalROC)
 # DESNT         == Eur Urol Focus 2017      == GSE94767    == HuEx 1.0 ST              == Time to BCR
 # E-MTAB-6128   == Annuals of Oncology 2018 == E-MTAB-6128 == HuGene 2.0 ST            == Time to BCR
 # Belfast       == Journal of Clinical Oncology 2017  == GSE116918 == ADXPCv1a520642   == Time to BCR/Metastasis
-
-
 
 #################################################################
 
@@ -140,17 +132,12 @@ for (dataset in datasets) {
 
 
 statsDF <- do.call(rbind, statsList)
-statsDF
 statsDF <- data.frame(statsDF, stringsAsFactors = F)
-statsDF
 
 colnames(statsDF) <- c('Dataset', 'Model', 'Signature', 'C', 'Cox.HR','Cox.Lower95',
                        'Cox.Upper96','Cox.P','KM.HR','KM.Lower95','KM.Upper95','KM.P')
 
 statsDF[,4:12] <- apply(statsDF[,4:12], 2, as.numeric)
-
-View(statsDF)
-
 
 dataForBoxPlot <- statsDF
 
@@ -211,8 +198,6 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
         axis.title = element_text(size=16)) +
   theme(strip.text = element_text(size=14, face='bold')) #+
   #theme(plot.margin =  margin(t = 0.25, r = 0.25, b = 0.25, l = 0.25, unit = "cm"))
-
-
 
 
 #################################################################
@@ -332,11 +317,8 @@ for (training.set in datasets) {
         
       }
     }
-
   }
-
 }
-
 
 statsDF <- do.call(rbind, statsList)
 statsDF
@@ -367,9 +349,6 @@ med <- dataForBoxPlot %>% group_by(Training, Signature) %>%
 
 med <- dataForBoxPlot %>% group_by(Signature) %>% 
   summarise(med=median(C, na.rm=T))
-
-View(med)
-
 
 ##### Models
 
@@ -412,4 +391,3 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
         axis.title = element_text(size=16)) +
   theme(strip.text = element_text(size=14, face='bold')) +
   theme(plot.margin =  margin(t = 0.25, r = 0.25, b = 0.25, l = 0.25, unit = "cm"))
-  
