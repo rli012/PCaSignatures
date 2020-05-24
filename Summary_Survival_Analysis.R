@@ -3,11 +3,14 @@
 ###              Summary of Survial Analysis Models              ###
 ####################################################################
 
+setwd('~/bigdata/PCa/')
+
 library(survivalROC)
 library(survival)
 library(survminer)
 library(survcomp)
 library(ggplot2)
+library(dplyr)
 
 library(meta)
 # calculate the overall HR (AUC, and C.index) for each signature, 
@@ -26,24 +29,22 @@ library(meta)
 # Belfast       == Journal of Clinical Oncology 2017  == GSE116918 == ADXPCv1a520642   == Time to BCR/Metastasis
 
 
-
 #################################################################
 
-###### CV10
+###### Intra-Dataset
 
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
               'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
 
-
-models <- c('CoxPH', 'CoxNetAlpha0', 'SuperPC') #, 'SurvivalSVM'
-models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC0', 'SuperPC0.1', 'SuperPC') #, 'SurvivalSVM'
-
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
+
+### Final Models
+models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC', 'plsRcox2', 'randomForestSRC100')
 
 i <- 0
 statsList <- list()
@@ -76,7 +77,7 @@ for (dataset in datasets) {
       
       res <- read.csv(file=fl.name, stringsAsFactors = F, row.names = 1)
       
-      if (sum(res$risk.score==0)>=1/2*length(res$risk.score)) {
+      if (sum(res$risk.score==0)>=length(res$risk.score) | sum(res$risk.group)==0) {
         print (paste('Zero:', fl.name))
         stats <- c(stats, c(dataset, model, signature.name, rep(NA,10)))
         statsList[[i]] <- stats
@@ -160,17 +161,24 @@ colnames(statsDF) <- c('Dataset', 'Model', 'Signature', 'C', 'TD.AUC', 'Cox.HR',
 
 statsDF[,4:13] <- apply(statsDF[,4:13], 2, as.numeric)
 
-
 dataForBoxPlot <- statsDF
 
+dataForBoxPlot$Model[dataForBoxPlot$Model=='CoxNet'] <- 'CoxLasso'
+dataForBoxPlot$Model[dataForBoxPlot$Model=='CoxNetAlpha0'] <- 'CoxRidge'
+dataForBoxPlot$Model[dataForBoxPlot$Model=='plsRcox2'] <- 'plsRcox'
+dataForBoxPlot$Model[dataForBoxPlot$Model=='randomForestSRC100'] <- 'RandomForest'
+
+dataForBoxPlot$Model <- factor(dataForBoxPlot$Model,
+                               levels=c('CoxPH','CoxLasso','CoxRidge','SuperPC','plsRcox','RandomForest'))
+
 dataForBoxPlot$Dataset <- factor(dataForBoxPlot$Dataset, levels=datasets)
-dataForBoxPlot$Model <- factor(dataForBoxPlot$Model, levels=models)
 dataForBoxPlot$Signature <- factor(dataForBoxPlot$Signature, levels=signatures)
 
-# saveRDS(dataForBoxPlot, file='report/Summary/Summary_Survival_CV10.RDS')
-# saveRDS(dataForBoxPlot, file='report/Summary/Summary_SurvivalC_CV10.RDS')
+saveRDS(dataForBoxPlot, file='report/Summary/Summary_Survival_Intra_Dataset.RDS')
+# saveRDS(dataForBoxPlot, file='report/Summary/Summary_SurvivalC_Intra_Dataset.RDS')
 
-library(dplyr)
+unique(dataForBoxPlot$Model)
+
 med <- dataForBoxPlot %>% group_by(Dataset, Model) %>% 
   summarise(med=median(C, na.rm=T))
 
@@ -181,6 +189,7 @@ med <- dataForBoxPlot %>% group_by(Signature) %>%
   summarise(med=median(C, na.rm=T))
 
 View(med)
+
 
 ##### Models
 
@@ -232,25 +241,23 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
 
 
 
-
 #################################################################
 
-###### Training - Test
-
+###### Inter-Dataset
 
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
               'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
 
-
-models <- c('CoxPH', 'CoxNetAlpha0', 'SuperPC') #, 'SurvivalSVM'
-models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC0', 'SuperPC0.1', 'SuperPC') #, 'SurvivalSVM'
-
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
+
+### Final Models
+models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC', 'plsRcox2', 'randomForestSRC100')
+
 
 i <- 0
 statsList <- list()
@@ -287,7 +294,7 @@ for (training.set in datasets) {
         
         res <- read.csv(file=fl.name, stringsAsFactors = F, row.names = 1)
         
-        if (sum(res$risk.score==0)>=1/2*length(res$risk.score)) {
+        if (sum(res$risk.score==0)>=1/2*length(res$risk.score) | sum(res$risk.group)==0) {
           print (paste('Zero:', fl.name))
           stats <- c(stats, c(training.set, test.set, model, signature.name, rep(NA,10)))
           statsList[[i]] <- stats
@@ -374,12 +381,21 @@ statsDF[,5:14] <- apply(statsDF[,5:14], 2, as.numeric)
 
 dataForBoxPlot <- statsDF
 
+dataForBoxPlot$Model[dataForBoxPlot$Model=='CoxNet'] <- 'CoxLasso'
+dataForBoxPlot$Model[dataForBoxPlot$Model=='CoxNetAlpha0'] <- 'CoxRidge'
+dataForBoxPlot$Model[dataForBoxPlot$Model=='plsRcox2'] <- 'plsRcox'
+dataForBoxPlot$Model[dataForBoxPlot$Model=='randomForestSRC100'] <- 'RandomForest'
+
+
 dataForBoxPlot$Training <- factor(dataForBoxPlot$Training, levels=datasets)
 dataForBoxPlot$Test <- factor(dataForBoxPlot$Test, levels=datasets)
-dataForBoxPlot$Model <- factor(dataForBoxPlot$Model, levels=models)
+
+dataForBoxPlot$Model <- factor(dataForBoxPlot$Model, 
+                               levels=c('CoxPH','CoxLasso','CoxRidge','SuperPC','plsRcox','RandomForest'))
+
 dataForBoxPlot$Signature <- factor(dataForBoxPlot$Signature, levels=signatures)
 
-# saveRDS(dataForBoxPlot, file='report/Summary/Summary_Survival_Training_Test.RDS')
+saveRDS(dataForBoxPlot, file='report/Summary/Summary_Survival_Inter_Dataset.RDS')
 # saveRDS(dataForBoxPlot, file='report/Summary/Summary_SurvivalC_Training_Test.RDS')
 
 
@@ -451,25 +467,23 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
 
 ###### Explore Individual Analysis
 
-
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
               'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
 
-
-models <- c('CoxPH', 'CoxNet', 'SuperPC') #, 'SurvivalSVM'
-models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC0', 'SuperPC0.1', 'SuperPC') #, 'SurvivalSVM'
-
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
 
+### Final Models
+models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC', 'plsRcox2', 'randomForestSRC100')
+
 
 dataset <- datasets[1]
 model <- models[2]
-signature.name <- signatures[4]
+signature.name <- signatures[11]
 
 res <- read.csv(file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
                 stringsAsFactors = F, row.names = 1)
@@ -531,7 +545,6 @@ summcph <- summary(coxtest)
 
 coeffs <- c(summcph$coefficients[,2], summcph$conf.int[,3:4], 
             summcph$coefficients[,5])
-
 coeffs
 
 
@@ -613,18 +626,19 @@ print (plt[[1]])
 
 ###### Check Files
 
+datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
+              'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
+
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
 
-models <- c('CoxPH', 'CoxNet', 'SuperPC') #, 'SurvivalSVM'
-models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC0', 'SuperPC0.1', 'SuperPC') #, 'SurvivalSVM'
+### Final Models
+models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC', 'plsRcox2', 'randomForestSRC100')
 
-datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
-              'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
 
 for (dataset in datasets) {
   message(dataset)
