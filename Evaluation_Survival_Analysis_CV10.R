@@ -1,22 +1,18 @@
 
-####################################################################
-###      Evaluation of Survial Analysis Models (10-fold CV)      ###
-####################################################################
+#######################################################################
+###      Evaluation of Survial Analysis Models (Intra-Dataset)      ###
+#######################################################################
 
 setwd('~/bigdata/PCa/')
-source('script/PCa_Functions.R')
-source('~/bigdata/LABDATA/BLUPHAT/script/Helper_Functions.R')
-
+source('script/Helper_Functions.R')
 
 # BRB-ArrayTools: https://brb.nci.nih.gov/BRB-ArrayTools/download.html
 # randomForestSRC: https://kogalur.github.io/randomForestSRC/theory.html
 # superpc: http://statweb.stanford.edu/~tibs/superpc/tutorial.html
 # plsRcox: https://fbertran.github.io/plsRcox/
-# BhGLM: https://github.com/nyiuab/BhGLM
 
-#library(remotes)
-#install_github("nyiuab/BhGLM", force=T, build_vignettes=T)
-#BiocManager::install('survcomp')
+# library(remotes)
+# install_github("nyiuab/BhGLM", force=T, build_vignettes=T)
 
 library(Biobase)
 library(readxl)
@@ -24,20 +20,22 @@ library(survminer)
 library(survcomp)
 
 library(survival) # coxph
-library(glmnet) # coxnet
+library(glmnet) # coxnet - lasso, ridge
 library(superpc) # pca
-#library(survivalsvm) # svm
-#library(randomForestSRC)
-#library(plsRcox)
+library(randomForestSRC) # random forest
+library(plsRcox) # pls
 
-#library(BhGLM)
+library(survivalsvm) # svm
+library(BhGLM)
 
-# Elastic Net/Lasso-Cox
-# survivalSVM
-# randomForestSRC
+# CoxPH
+# CoxNet-Lasso
+# CoxNet-Ridge
+# SuperPC
 # plsRcox
-# Superpc
+# RandomForest
 
+# survivalSVM
 # Bayesian Losso
 # Neural Network Cox
 # Dr. Yi
@@ -119,21 +117,20 @@ foldid
 
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
 
-# signatures <- c('Penney', 'Irshad', 'Ramos_Montoya','Ross_Adams','Sharma', 'Yang')  # n > p in most of the datasets
-
 for (signature.name in signatures) {
   message(signature.name)
   
-  signature <- read_xlsx(path = 'data/Classifiers.xlsx', sheet=signature.name)
+  signature <- read_xlsx(path = 'data/PCa_Prognosis_Signatures.xlsx', sheet=signature.name)
   signature.genes <- signature$Ensembl
 
   genes <- intersect(signature.genes, colnames(geno))
 
+  
   ################################ CoxPH
 
   model <- 'CoxPH'
@@ -152,6 +149,14 @@ for (signature.name in signatures) {
 
     training.geno <- geno[training.idx,genes]
     test.geno <- geno[test.idx,genes]
+    
+    filter <- which(apply(training.geno, 2, function(v) sum(v==mean(v))==length(v)))
+    #filter <- which(apply(training.geno, 2, sd)==0)
+    
+    if (length(filter)>0) {
+      training.geno <- training.geno[,-filter]
+      test.geno <- test.geno[,-filter]
+    }
 
     training.bcr.time <- pheno$time_to_bcr[training.idx]
     training.bcr.status <-  pheno$bcr_status[training.idx]
@@ -169,18 +174,15 @@ for (signature.name in signatures) {
     summcph <- summary(coxtest)
     coeffs <- summcph$coefficients[,1]
 
-    # risk.score1 <- coxtest$linear.predictors # NA removed
+    #risk.score1 <- coxtest$linear.predictors # NA removed
 
     #risk.score2 <- colSums(apply(training.geno, 1, function(v) v*coeffs))
-    #risk.score2
 
     #risk.score3 <- predict(coxtest, data.frame(training.geno), type="lp", se.fit=FALSE)
-    #risk.score3
 
     #risk.score2-risk.score3 # not exactly the same
 
     #risk.score <- predict(coxtest, data.frame(training.geno), type="risk", se.fit=FALSE)
-    #risk.score
 
     training.risk.score <- predict(coxtest, data.frame(training.geno), type="lp", se.fit=FALSE) # type='risk'
     training.risk.score
@@ -190,8 +192,6 @@ for (signature.name in signatures) {
 
     test.risk.score <- predict(coxtest, data.frame(test.geno), type="lp", se.fit=FALSE)
     test.risk.score
-    #risk.threshold <- median(test.risk.score, na.rm = T)
-    #risk.threshold
 
     test.risk.threshold <- median(test.risk.score, na.rm = T)
     test.risk.threshold
@@ -234,18 +234,18 @@ for (signature.name in signatures) {
 
   write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
             quote = F)
+  
   # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
   #           quote = F)
   
-  ############################## Elastic Net (CoxNet)
   
-  ### LASSO by default, alpha = 1
+  ############################## CoxLasso
   
-  # alpha <- 1
-  # model <- 'CoxNet'
+  #alpha <- 1
+  #model <- 'CoxNet'
   
-  alpha <- 0
-  model <- paste0('CoxNetAlpha',alpha)
+  alpha <- 1
+  model <- 'CoxLasso'
   
   riskScore <- c()
   trainingRiskGroup <- c()
@@ -260,6 +260,14 @@ for (signature.name in signatures) {
     
     training.geno <- geno[training.idx,genes]
     test.geno <- geno[test.idx,genes]
+    
+    filter <- which(apply(training.geno, 2, function(v) sum(v==mean(v))==length(v)))
+    #filter <- which(apply(training.geno, 2, sd)==0)
+    
+    if (length(filter)>0) {
+      training.geno <- training.geno[,-filter]
+      test.geno <- test.geno[,-filter]
+    }
     
     training.bcr.time <- pheno$time_to_bcr[training.idx]
     training.bcr.status <-  pheno$bcr_status[training.idx]
@@ -332,14 +340,13 @@ for (signature.name in signatures) {
   #           quote = F)
   
   
-  ##################################### superpc
+  ############################## CoxRidge
   
-  # threshold <- 0.3
-  # model <- 'SuperPC'
-  # print (model)
+  # alpha <- 0
+  # model <- paste0('CoxNetAlpha', alpha)
   
-  threshold <- 0 # 0.1
-  model <- paste0('SuperPC',threshold)
+  alpha <- 0
+  model <- 'CoxRidge'
   
   riskScore <- c()
   trainingRiskGroup <- c()
@@ -354,6 +361,115 @@ for (signature.name in signatures) {
     
     training.geno <- geno[training.idx,genes]
     test.geno <- geno[test.idx,genes]
+    
+    filter <- which(apply(training.geno, 2, function(v) sum(v==mean(v))==length(v)))
+    #filter <- which(apply(training.geno, 2, sd)==0)
+    
+    if (length(filter)>0) {
+      training.geno <- training.geno[,-filter]
+      test.geno <- test.geno[,-filter]
+    }
+    
+    training.bcr.time <- pheno$time_to_bcr[training.idx]
+    training.bcr.status <-  pheno$bcr_status[training.idx]
+    
+    test.bcr.time <- pheno$time_to_bcr[test.idx]
+    test.bcr.status <-  pheno$bcr_status[test.idx]
+    
+    training.surv.data <- data.frame(training.geno, bcr.time=training.bcr.time, bcr.status=training.bcr.status)
+    
+    set.seed(777)
+    cv.fit <- cv.glmnet(training.geno, Surv(training.bcr.time, training.bcr.status), 
+                        alpha = alpha, family="cox", maxit = 1000)
+    
+    coeffs <- coef(cv.fit, s = cv.fit$lambda.min)
+    coeffs <- as.numeric(coeffs)
+    
+    training.risk.score <- predict(cv.fit, s=cv.fit$lambda.min, newx = training.geno, type="link") # response: reltive risk; link: linear prediction
+    training.risk.score
+    training.risk.score <- training.risk.score[,1]
+    
+    training.risk.threshold <- median(training.risk.score, na.rm = T)
+    training.risk.threshold
+    
+    test.risk.score <- predict(cv.fit, s=cv.fit$lambda.min, newx = test.geno, type="link") # response: reltive risk; link: linear prediction
+    test.risk.score
+    test.risk.score <- test.risk.score[,1]
+    
+    test.risk.threshold <- median(test.risk.score, na.rm = T)
+    test.risk.threshold
+    
+    training.risk.group <- test.risk.score > training.risk.threshold
+    training.risk.group
+    
+    test.risk.group <- test.risk.score > test.risk.threshold
+    test.risk.group
+    
+    tr <- paste0('[Train] ', training.risk.score)
+    names(tr) <- names(training.risk.score)
+    
+    test <- paste0('[Test] ', test.risk.score)
+    names(test) <- names(test.risk.score)
+    
+    cv[[k]] <- c(tr, test)[samples]
+    
+    riskScore <- c(riskScore, test.risk.score)
+    
+    trainingRiskGroup <- c(trainingRiskGroup, training.risk.group)
+    testRiskGroup <- c(testRiskGroup, test.risk.group)
+    
+  }
+  
+  cv <- do.call(cbind, cv)
+  colnames(cv) <- paste0('CV',1:10)
+  cv
+  
+  riskScore <- riskScore[samples]
+  trainingRiskGroup <- trainingRiskGroup[samples]
+  testRiskGroup <- testRiskGroup[samples]
+  
+  riskThreshold <- median(riskScore, na.rm=T)
+  riskGroup <- riskScore > riskThreshold
+  
+  res <- data.frame(risk.score=riskScore, risk.group=riskGroup, training.risk.group=trainingRiskGroup, 
+                    test.risk.group=testRiskGroup, bcr.time=pheno$time_to_bcr, bcr.status=pheno$bcr_status, cv)
+  
+  write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+            quote = F)
+  
+  # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+  #           quote = F)
+  
+  
+  ##################################### SuperPC
+  
+  # threshold <- 0 # 0.1, 0.3
+  # model <- paste0('SuperPC',threshold)
+  
+  threshold <- 0.3
+  model <- 'SuperPC'
+  
+  riskScore <- c()
+  trainingRiskGroup <- c()
+  testRiskGroup <- c()
+  
+  cv <- list()
+  
+  for (k in 1:nfold) {
+    
+    training.idx <- which(foldid!=k)
+    test.idx <- which(foldid==k)
+    
+    training.geno <- geno[training.idx,genes]
+    test.geno <- geno[test.idx,genes]
+    
+    filter <- which(apply(training.geno, 2, function(v) sum(v==mean(v))==length(v)))
+    #filter <- which(apply(training.geno, 2, sd)==0)
+    
+    if (length(filter)>0) {
+      training.geno <- training.geno[,-filter]
+      test.geno <- test.geno[,-filter]
+    }
     
     training.bcr.time <- pheno$time_to_bcr[training.idx]
     training.bcr.status <-  pheno$bcr_status[training.idx]
@@ -427,10 +543,206 @@ for (signature.name in signatures) {
   # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
   #           quote = F)
   
-
-  ##################################### survivalsvm
+                          
+  ##################################### plsRcox
   
-  # Ctrl + Shift + C, comment out a block of code
+  #ncomps <- 1 # 2, 3
+  #model <- paste0('plsRcox',ncomps)
+  
+  ncomps <- 2
+  model <- 'plsRcox'
+  
+  riskScore <- c()
+  trainingRiskGroup <- c()
+  testRiskGroup <- c()
+  
+  cv <- list()
+  
+  for (k in 1:nfold) {
+    
+    training.idx <- which(foldid!=k)
+    test.idx <- which(foldid==k)
+    
+    training.geno <- geno[training.idx,genes]
+    test.geno <- geno[test.idx,genes]
+    
+    filter <- which(apply(training.geno, 2, function(v) sum(v==mean(v))==length(v)))
+    
+    if (length(filter)>0) {
+      training.geno <- training.geno[,-filter]
+      test.geno <- test.geno[,-filter]
+    }
+    
+    training.bcr.time <- pheno$time_to_bcr[training.idx]
+    training.bcr.status <-  pheno$bcr_status[training.idx]
+    
+    test.bcr.time <- pheno$time_to_bcr[test.idx]
+    test.bcr.status <-  pheno$bcr_status[test.idx]
+    
+    training.surv.data <- data.frame(training.geno, bcr.time=training.bcr.time, bcr.status=training.bcr.status)
+    
+    pls.fit <- plsRcox(training.geno,time=training.bcr.time,event=training.bcr.status, nt=ncomps)
+    
+    training.risk.score <- predict(pls.fit, newdata = training.geno, type="lp", comps= ncomps, se.fit=FALSE) # type='risk'
+    training.risk.score
+    
+    names(training.risk.score) <- rownames(training.geno)
+    
+    training.risk.threshold <- median(training.risk.score, na.rm = T)
+    training.risk.threshold
+    
+    test.risk.score <- predict(pls.fit, newdata = test.geno, type="lp", comps= ncomps, se.fit=FALSE)
+    test.risk.score
+    #risk.threshold <- median(test.risk.score, na.rm = T)
+    #risk.threshold
+    
+    names(test.risk.score) <- rownames(test.geno)
+    
+    test.risk.threshold <- median(test.risk.score, na.rm = T)
+    test.risk.threshold
+    
+    
+    training.risk.group <- test.risk.score > training.risk.threshold
+    training.risk.group
+    
+    test.risk.group <- test.risk.score > test.risk.threshold
+    test.risk.group
+    
+    tr <- paste0('[Train] ', training.risk.score)
+    names(tr) <- names(training.risk.score)
+    
+    test <- paste0('[Test] ', test.risk.score)
+    names(test) <- names(test.risk.score)
+    
+    cv[[k]] <- c(tr, test)[samples]
+    
+    riskScore <- c(riskScore, test.risk.score)
+    
+    trainingRiskGroup <- c(trainingRiskGroup, training.risk.group)
+    testRiskGroup <- c(testRiskGroup, test.risk.group)
+    
+  }
+  
+  cv <- do.call(cbind, cv)
+  cv
+  colnames(cv) <- paste0('CV',1:10)
+  
+  riskScore <- riskScore[samples]
+  trainingRiskGroup <- trainingRiskGroup[samples]
+  testRiskGroup <- testRiskGroup[samples]
+  
+  riskThreshold <- median(riskScore, na.rm=T)
+  riskGroup <- riskScore > riskThreshold
+  
+  res <- data.frame(risk.score=riskScore, risk.group=riskGroup, training.risk.group=trainingRiskGroup,
+                    test.risk.group=testRiskGroup, bcr.time=pheno$time_to_bcr, bcr.status=pheno$bcr_status, cv)
+  
+  write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+            quote = F)
+  
+  # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+  #           quote = F)
+  
+  
+  ##################################### RandomForest
+  
+  # ntree <- 10 # 20, 50, 100
+  # model <- paste0('randomForestSRC',ntree)
+  
+  ntree <- 100
+  model <- 'RandomForest'
+  
+  riskScore <- c()
+  trainingRiskGroup <- c()
+  testRiskGroup <- c()
+  
+  cv <- list()
+  
+  for (k in 1:nfold) {
+    
+    training.idx <- which(foldid!=k)
+    test.idx <- which(foldid==k)
+    
+    training.geno <- geno[training.idx,genes]
+    test.geno <- geno[test.idx,genes]
+    
+    filter <- which(apply(training.geno, 2, function(v) sum(v==mean(v))==length(v)))
+    
+    if (length(filter)>0) {
+      training.geno <- training.geno[,-filter]
+      test.geno <- test.geno[,-filter]
+    }
+    
+    training.bcr.time <- pheno$time_to_bcr[training.idx]
+    training.bcr.status <-  pheno$bcr_status[training.idx]
+    
+    test.bcr.time <- pheno$time_to_bcr[test.idx]
+    test.bcr.status <-  pheno$bcr_status[test.idx]
+    
+    training.surv.data <- data.frame(training.geno, bcr.time=training.bcr.time, bcr.status=training.bcr.status)
+    
+    set.seed(777)
+    rf.fit <- rfsrc(Surv(bcr.time, bcr.status) ~ ., data = training.surv.data, ntree = ntree)
+    
+    training.risk.score <- predict(rf.fit, data.frame(training.geno))
+    training.risk.score <- training.risk.score$predicted
+    names(training.risk.score) <- rownames(training.geno)
+    
+    training.risk.threshold <- median(training.risk.score, na.rm = T)
+    training.risk.threshold
+    
+    test.risk.score <- predict(rf.fit, data.frame(test.geno)) ###
+    test.risk.score <- test.risk.score$predicted
+    names(test.risk.score) <- rownames(test.geno)
+    
+    test.risk.threshold <- median(test.risk.score, na.rm = T)
+    test.risk.threshold
+    
+    
+    training.risk.group <- test.risk.score > training.risk.threshold
+    training.risk.group
+    
+    test.risk.group <- test.risk.score > test.risk.threshold
+    test.risk.group
+    
+    tr <- paste0('[Train] ', training.risk.score)
+    names(tr) <- names(training.risk.score)
+    
+    test <- paste0('[Test] ', test.risk.score)
+    names(test) <- names(test.risk.score)
+    
+    cv[[k]] <- c(tr, test)[samples]
+    
+    riskScore <- c(riskScore, test.risk.score)
+    
+    trainingRiskGroup <- c(trainingRiskGroup, training.risk.group)
+    testRiskGroup <- c(testRiskGroup, test.risk.group)
+    
+    
+  }
+  
+  cv <- do.call(cbind, cv)
+  cv
+  colnames(cv) <- paste0('CV',1:10)
+  
+  riskScore <- riskScore[samples]
+  trainingRiskGroup <- trainingRiskGroup[samples]
+  testRiskGroup <- testRiskGroup[samples]
+  
+  riskThreshold <- median(riskScore, na.rm=T)
+  riskGroup <- riskScore > riskThreshold
+  
+  res <- data.frame(risk.score=riskScore, risk.group=riskGroup, training.risk.group=trainingRiskGroup,
+                    test.risk.group=testRiskGroup, bcr.time=pheno$time_to_bcr, bcr.status=pheno$bcr_status, cv)
+  
+  write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+            quote = F)
+  
+  # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+  #           quote = F)
+  
+  
+  ##################################### SurvivalSVM
   
   # model <- 'SurvivalSVM'
   # 
@@ -441,59 +753,66 @@ for (signature.name in signatures) {
   # cv <- list()
   # 
   # for (k in 1:nfold) {
-  #   
+  # 
   #   training.idx <- which(foldid!=k)
   #   test.idx <- which(foldid==k)
-  #   
+  # 
   #   training.geno <- geno[training.idx,genes]
   #   test.geno <- geno[test.idx,genes]
+  # 
+  #   filter <- which(apply(training.geno, 2, function(v) sum(v==mean(v))==length(v)))
   #   
+  #   if (length(filter)>0) {
+  #     training.geno <- training.geno[,-filter]
+  #     test.geno <- test.geno[,-filter]
+  #   }
+  # 
   #   training.bcr.time <- pheno$time_to_bcr[training.idx]
   #   training.bcr.status <-  pheno$bcr_status[training.idx]
-  #   
+  # 
   #   test.bcr.time <- pheno$time_to_bcr[test.idx]
   #   test.bcr.status <-  pheno$bcr_status[test.idx]
-  #   
+  # 
   #   training.surv.data <- data.frame(training.geno, bcr.time=training.bcr.time, bcr.status=training.bcr.status)
-  #   
+  # 
   #   set.seed(777)
-  #   svmfit <- survivalsvm(Surv(bcr.time, bcr.status) ~ ., data = training.surv.data, 
+  #   svmfit <- survivalsvm(Surv(bcr.time, bcr.status) ~ ., data = training.surv.data,
   #                         gamma.mu = 0.1, kernel = 'lin_kernel')
-  #   
+  # 
   #   training.risk.score <- predict(svmfit, data.frame(training.geno))
   #   training.risk.score
   #   training.risk.score <- training.risk.score$predicted[1,]
-  #   
+  # 
   #   training.risk.threshold <- median(training.risk.score, na.rm = T)
   #   training.risk.threshold
-  #   
+  # 
   #   test.risk.score <- predict(svmfit, data.frame(test.geno)) ###
   #   test.risk.score
   #   test.risk.score <- test.risk.score$predicted[1,]
-  #   
+  # 
   #   test.risk.threshold <- median(test.risk.score, na.rm = T)
   #   test.risk.threshold
-  #   
-  #   
+  # 
+  # 
   #   training.risk.group <- test.risk.score > training.risk.threshold
   #   training.risk.group
-  #   
+  # 
   #   test.risk.group <- test.risk.score > test.risk.threshold
   #   test.risk.group
-  #   
+  # 
   #   tr <- paste0('[Train] ', training.risk.score)
   #   names(tr) <- names(training.risk.score)
-  #   
+  # 
   #   test <- paste0('[Test] ', test.risk.score)
   #   names(test) <- names(test.risk.score)
-  #   
+  # 
   #   cv[[k]] <- c(tr, test)[samples]
-  #   
+  # 
   #   riskScore <- c(riskScore, test.risk.score)
-  #   
+  # 
   #   trainingRiskGroup <- c(trainingRiskGroup, training.risk.group)
   #   testRiskGroup <- c(testRiskGroup, test.risk.group)
-  #   
+  # 
   # }
   # 
   # cv <- do.call(cbind, cv)
@@ -507,13 +826,13 @@ for (signature.name in signatures) {
   # riskThreshold <- median(riskScore, na.rm=T)
   # riskGroup <- riskScore > riskThreshold
   # 
-  # res <- data.frame(risk.score=riskScore, risk.group=riskGroup, training.risk.group=trainingRiskGroup, 
+  # res <- data.frame(risk.score=riskScore, risk.group=riskGroup, training.risk.group=trainingRiskGroup,
   #                   test.risk.group=testRiskGroup, bcr.time=pheno$time_to_bcr, bcr.status=pheno$bcr_status, cv)
   # 
   # 
   # write.csv(res, file=paste0('report/Survival/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
   #           quote = F)
-  
-  
+  # 
+  # # write.csv(res, file=paste0('report/SurvivalC/CV10Scale/Signature/Survival_', model, '_', signature.name, '_', dataset, '.csv'),
+  # #           quote = F)
 }
-
