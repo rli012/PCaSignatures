@@ -40,7 +40,7 @@ signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad'
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
-                
+
 # SuperPC
 models <- c('CoxPH', 'CoxNetAlpha0', 'CoxNet', 'SuperPC0', 'SuperPC0.1', 'SuperPC') # SuperPC 0.3
 
@@ -155,7 +155,6 @@ for (dataset in datasets) {
   }
 }
 
-
 statsDF <- do.call(rbind, statsList)
 statsDF
 statsDF <- data.frame(statsDF, stringsAsFactors = F)
@@ -194,6 +193,8 @@ saveRDS(dataForBoxPlot, file='report/Summary/Summary_Survival_plsRcox_Intra_Data
 
 
 ### RandomForest
+dataForBoxPlot$Model <- gsub('randomForestSRC', 'RandomForest', dataForBoxPlot$Model)
+
 dataForBoxPlot$Model <- factor(dataForBoxPlot$Model,
                                levels=c('CoxPH','CoxLasso','CoxRidge','RandomForest10',
                                         'RandomForest20','RandomForest50','RandomForest100'))
