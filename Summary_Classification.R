@@ -1,16 +1,18 @@
 
-
 ####################################################################
 ###               Summary of Classification Models               ###
 ####################################################################
+
+setwd('~/bigdata/PCa/')
 
 library(survivalROC)
 library(survival)
 library(survminer)
 library(survcomp)
 library(ggplot2)
-library(ROCR)
+library(pROC)
 library(Biobase)
+library(dplyr)
 
 library(meta)
 # calculate the overall HR (AUC, and C.index) for each signature, 
@@ -30,9 +32,9 @@ library(meta)
 
 
 
-#####################################################
+#################################################################
 
-############ CV10
+###### Intra-Dataset
 
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
               'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
@@ -199,9 +201,9 @@ dataForBoxPlot$Dataset <- factor(dataForBoxPlot$Dataset, levels=datasets)
 dataForBoxPlot$Model <- factor(dataForBoxPlot$Model, levels=models)
 dataForBoxPlot$Signature <- factor(dataForBoxPlot$Signature, levels=signatures)
 
-# saveRDS(dataForBoxPlot, file='report/Summary/Summary_Classification_CV10.RDS')
+saveRDS(dataForBoxPlot, file='report/Summary/Summary_Classification_Intra_Dataset.RDS')
 
-library(dplyr)
+
 med <- dataForBoxPlot %>% group_by(Dataset, Model) %>% 
   summarise(med=median(C, na.rm=T))
 
@@ -220,7 +222,7 @@ ggplot(data=dataForBoxPlot, aes(x=Model, y=C)) +
                outlier.shape = NA, outlier.size = NA, #outlier.colour = 'black',
                outlier.fill = NA) +
   facet_wrap(~Dataset, nrow=2) +
-  ylim(0,5) +
+  #ylim(0,5) +
   geom_jitter(size=2, width=0.05, color='black') + #darkblue
   #ylim(0,6) +
   #scale_fill_manual(values=c("#56B4E9", "#E69F00")) +
@@ -268,9 +270,9 @@ ggplot(data=dataForBoxPlot, aes(x=Signature, y=C)) +
 
 
 
-#####################################################
+#################################################################
 
-############ Training - Test
+###### Inter-Dataset
 
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
               'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
@@ -445,9 +447,9 @@ dataForBoxPlot$Test <- factor(dataForBoxPlot$Test, levels=datasets)
 dataForBoxPlot$Model <- factor(dataForBoxPlot$Model, levels=models)
 dataForBoxPlot$Signature <- factor(dataForBoxPlot$Signature, levels=signatures)
 
-# saveRDS(dataForBoxPlot, file='report/Summary/Summary_Classification_Training_Test.RDS')
+saveRDS(dataForBoxPlot, file='report/Summary/Summary_Classification_Inter_Dataset.RDS')
 
-library(dplyr)
+
 med <- dataForBoxPlot %>% group_by(Training, Model) %>% 
   summarise(med=median(C, na.rm=T))
 
