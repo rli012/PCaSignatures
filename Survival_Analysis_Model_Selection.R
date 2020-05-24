@@ -26,11 +26,6 @@ library(meta)
 # E-MTAB-6128   == Annuals of Oncology 2018 == E-MTAB-6128 == HuGene 2.0 ST            == Time to BCR
 # Belfast       == Journal of Clinical Oncology 2017  == GSE116918 == ADXPCv1a520642   == Time to BCR/Metastasis
 
-
-#################################################################
-
-###### Parameters
-
 datasets <- c('TCGA_PRAD','GSE107299','GSE21034','DKFZ2018','GSE54460','GSE70768','GSE70769',
               'GSE94767','E_MTAB_6128','GSE116918_BCR') # , 'GSE116918_Metastasis'
 
