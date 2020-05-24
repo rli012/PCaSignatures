@@ -32,12 +32,26 @@ phenoData <- pData(eSet)
 #View(phenoData)
 table(phenoData$sample_type)
 
-keep <- which(phenoData$sample_type=='Primary' | phenoData$sample_type=='Tumor' | phenoData$sample_type=='Tumour' )
 
+keep <- which(phenoData$sample_type=='Primary' | phenoData$sample_type=='Tumor' | phenoData$sample_type=='Tumour')
 exprData <- exprData[,keep]
 phenoData <- phenoData[keep,]
 
+filter <- which(phenoData$filter=='Duplicate')
+
+if (length(filter)>0) {
+  exprData <- exprData[,-filter]
+  phenoData <- phenoData[-filter,]
+}
+
 filter <- which(duplicated(phenoData$patient_id, incomparables = NA))
+
+if (length(filter)>0) {
+  exprData <- exprData[,-filter]
+  phenoData <- phenoData[-filter,]
+}
+
+filter <- grep('Biological|Technical', phenoData$sample_id)
 
 if (length(filter)>0) {
   exprData <- exprData[,-filter]
@@ -120,12 +134,26 @@ for (model in models) {
       
       exprData <- exprs(eSet)
       phenoData <- pData(eSet)
-      keep <- which(phenoData$sample_type=='Primary' | phenoData$sample_type=='Tumor' | phenoData$sample_type=='Tumour' )
       
+      keep <- which(phenoData$sample_type=='Primary' | phenoData$sample_type=='Tumor' | phenoData$sample_type=='Tumour')
       exprData <- exprData[,keep]
       phenoData <- phenoData[keep,]
       
+      filter <- which(phenoData$filter=='Duplicate')
+      
+      if (length(filter)>0) {
+        exprData <- exprData[,-filter]
+        phenoData <- phenoData[-filter,]
+      }
+      
       filter <- which(duplicated(phenoData$patient_id, incomparables = NA))
+      
+      if (length(filter)>0) {
+        exprData <- exprData[,-filter]
+        phenoData <- phenoData[-filter,]
+      }
+      
+      filter <- grep('Biological|Technical', phenoData$sample_id)
       
       if (length(filter)>0) {
         exprData <- exprData[,-filter]
