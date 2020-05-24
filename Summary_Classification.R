@@ -43,7 +43,7 @@ models <- c('glmnet','svmLinear','svmRadial','svmPoly','rf','pls','lda','xgbLine
 
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
@@ -281,7 +281,7 @@ models <- c('glmnet','svmLinear','svmRadial','svmPoly','rf','pls','lda','xgbLine
 
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
@@ -525,7 +525,7 @@ models <- c('glmnet','svmLinear','svmRadial','svmPoly','rf','pls','lda','xgbLine
 
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
@@ -717,7 +717,7 @@ print (plt[[1]])
 
 # Published signatures
 signatures <- c('Agell','Bibikova','Bismar','Decipher','Ding','Glinsky','Irshad',
-                'Jennifer','Jia','Kamoun','Long','Luca','Mo','Nakagawa','Olmos',
+                'Jennifer','Jia','Kamoun','Li','Long','Luca','Mo','Nakagawa','Olmos',
                 'Oncotype','Penney','Planche','Prolaris','Ramaswamy','Ramos_Montoya',
                 'Ross_Adams','Ross_Robert','Sharma','Talantov','Varambally','Wu','Yang',
                 'Yu')
