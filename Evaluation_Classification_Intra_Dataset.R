@@ -35,7 +35,21 @@ keep <- which(phenoData$sample_type=='Primary' | phenoData$sample_type=='Tumor' 
 exprData <- exprData[,keep]
 phenoData <- phenoData[keep,]
 
+filter <- which(phenoData$filter=='Duplicate')
+
+if (length(filter)>0) {
+  exprData <- exprData[,-filter]
+  phenoData <- phenoData[-filter,]
+}
+
 filter <- which(duplicated(phenoData$patient_id, incomparables = NA))
+
+if (length(filter)>0) {
+  exprData <- exprData[,-filter]
+  phenoData <- phenoData[-filter,]
+}
+
+filter <- grep('Biological|Technical', phenoData$sample_id)
 
 if (length(filter)>0) {
   exprData <- exprData[,-filter]
@@ -72,6 +86,7 @@ if (length(filter)>0) {
 # } else if (training.set %in% special.set) {
 #   phenoData$risk_group <- ifelse(phenoData$risk_group=='Good prognosis', 'E0', 'E1')
 # }
+
 
 #phenoData$bcr_status_3yr <- getEventFun(n=3, time.to.event=phenoData$time_to_bcr, status=phenoData$bcr_status)
 phenoData$risk_group <- getEventFun(n=5, time.to.event=phenoData$time_to_bcr, status=phenoData$bcr_status)
